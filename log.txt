@@ -1,0 +1,31 @@
+
+Jul 30 00:15:01 ubuntu-server sshd[1234]: Accepted publickey for user1 from 192.168.1.10 port 54321 ssh2
+Jul 30 00:15:02 ubuntu-server CRON[1235]: (root) CMD (   cd / && run-parts --report /etc/cron.hourly)
+Jul 30 00:15:03 ubuntu-server kernel[1236]: [ 123.456] eth0: Link is up at 1000 Mbps, full duplex
+Jul 30 00:15:04 ubuntu-server sshd[1237]: Failed password for user2 from 192.168.1.11 port 54322 ssh2
+Jul 30 00:15:05 ubuntu-server systemd[1238]: Started Daily apt upgrade and clean activities
+Jul 30 00:30:01 ubuntu-server sshd[1239]: Connection closed by 192.168.1.12 port 54323 [preauth]
+Jul 30 00:30:02 ubuntu-server CRON[1240]: (root) CMD (/usr/libexec/security-watchdog)
+Jul 30 00:45:01 ubuntu-server rsyslogd[1241]: [origin software="rsyslogd" swVersion="8.2001.0"] restarting
+Jul 30 01:00:01 ubuntu-server sshd[1242]: Accepted password for user3 from 10.0.0.5 port 54324 ssh2
+Jul 30 01:00:02 ubuntu-server CRON[1243]: (root) CMD (   [ -x /usr/lib/php/sessionclean ] && /usr/lib/php/sessionclean)
+Jul 30 01:15:01 ubuntu-server kernel[1244]: [ 456.789] CPU0: Temperature above threshold, cpu clock throttled
+Jul 30 01:15:02 ubuntu-server sshd[1245]: Failed password for invalid user guest from 192.168.1.13 port 54325 ssh2
+Jul 30 01:30:01 ubuntu-server systemd[1246]: Reached target Graphical Interface
+Jul 30 01:30:02 ubuntu-server CRON[1247]: (user1) CMD (/home/user1/scripts/backup.sh)
+Jul 30 02:00:01 ubuntu-server sshd[1248]: error: Could not load host key: /etc/ssh/ssh_host_ecdsa_key
+Jul 30 02:00:02 ubuntu-server CRON[1249]: (root) CMD (/usr/sbin/logrotate /etc/logrotate.conf)
+Jul 30 02:15:01 ubuntu-server systemd[1250]: Started Daily man-db regeneration
+Jul 30 02:15:02 ubuntu-server sshd[1251]: Accepted publickey for user4 from 172.16.0.10 port 54326 ssh2
+Jul 30 02:30:01 ubuntu-server kernel[1252]: [ 789.012] usb 1-1: device descriptor read/64, error -71
+Jul 30 02:45:01 ubuntu-server sshd[1253]: Failed password for user5 from 192.168.1.14 port 54327 ssh2
+Jul 30 03:00:01 ubuntu-server CRON[1254]: (root) CMD (/usr/libexec/update-motd)
+Jul 30 03:00:02 ubuntu-server systemd[1255]: Time has been changed
+Jul 30 03:15:01 ubuntu-server sshd[1256]: Connection reset by 192.168.1.15 port 54328 [preauth]
+Jul 30 03:30:01 ubuntu-server rsyslogd[1257]: warning: queue disk space low, dropping message
+Jul 30 03:45:01 ubuntu-server CRON[1258]: (root) CMD (/usr/sbin/check-security-updates)
+Jul 30 04:00:01 ubuntu-server sshd[1259]: Accepted password for user6 from 10.0.0.6 port 54329 ssh2
+Jul 30 04:00:02 ubuntu-server kernel[1260]: [1012.345] IPv6: ADDRCONF(NETDEV_UP): eth1: link is not ready
+Jul 30 04:15:01 ubuntu-server systemd[1261]: Starting Cleanup of Temporary Directories...
+Jul 30 04:30:01 ubuntu-server sshd[1262]: Failed password for user7 from 192.168.1.16 port 54330 ssh2
+Jul 30 04:45:01 ubuntu-server CRON[1263]: (root) CMD (/usr/bin/systemd-tmpfiles --clean)
