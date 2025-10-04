@@ -10,10 +10,12 @@ import joblib
 import logging
 import traceback
 from app.services.log_service import Anomalie_service
-from app.schema.anomalie_schema import CreateAnomalieDto
+from app.schema.anomalie_schema import CreateAnomalieDto,CreateReportedAnomalieDto
+from app.services.mailer_services import Mailer_Service
 
 
 anomalie_service = Anomalie_service()
+mailer_service = Mailer_Service()   
 logger = logging.getLogger(__name__)
 
 class SyslogProcessor:
@@ -115,7 +117,6 @@ class SyslogProcessor:
                             "count": self.ip_activity[log.get("host")],
                             "log": log
                         })
-
             if valid_logs:
                 
                 try:
@@ -147,7 +148,20 @@ class SyslogProcessor:
                 except Exception as e:
                     logger.error(f"❌ Erreur lors de l'extraction des features ou scoring : {type(e).__name__} - {e}")
                     traceback.print_exc()
-
+            if len(alerts) > 0:
+                for alert in alerts:
+                    await anomalie_service.create_reported_anomalie(
+                        CreateReportedAnomalieDto(
+                            type=alert['type'],
+                            # host=alert['log'].get("host"),
+                            host=alert.get("host") or None,
+                            count=alert['count'],
+                            # log=alert['log'].get("raw"),
+                            log = alert.get('log') or None,
+                        ).dict()
+                    )
+            test = await anomalie_service.getAlertReceiver() 
+           
             return valid_logs, alerts
         except Exception as e:
             traceback.print_exc()

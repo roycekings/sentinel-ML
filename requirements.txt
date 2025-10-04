@@ -14,3 +14,4 @@ pymongo==3.12.3
 aio-pika==6.8.2
 uvicorn[standard]
 websockets
+pydantic-settings

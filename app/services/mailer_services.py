@@ -2,7 +2,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from fastapi import Depends, HTTPException
-from pydantic import BaseSettings, EmailStr
+from pydantic_settings import BaseSettings
+from pydantic import EmailStr
+
 import traceback
 
 class Setting(BaseSettings):

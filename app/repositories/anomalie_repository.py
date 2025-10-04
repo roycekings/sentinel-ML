@@ -16,3 +16,5 @@ class AnomalieRepository:
                 traceback.print_exc()
                 logging.error(f"Failed to connect to MongoDB: {e}")
                 raise  # Arrête l'application si la DB est indisponible
+            
+

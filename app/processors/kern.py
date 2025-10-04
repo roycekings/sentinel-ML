@@ -4,6 +4,10 @@ from collections import defaultdict
 import pandas as pd
 import joblib
 from app.services.log_service import Anomalie_service
+from app.schema.anomalie_schema import CreateAnomalieDto, CreateReportedAnomalieDto
+
+
+anomalie_service = Anomalie_service()
 
 class KernLogProcessor:
     def __init__(self, model_path="app/models/kernlog_model.joblib"):
@@ -76,65 +80,6 @@ class KernLogProcessor:
             "is_storage": 1 if any(x in log["message"] for x in ["sd", "hd", "nvme"]) else 0,
             "message_length": len(log["message"])
         }
-
-    def detect_attacks(self, logs,device_name):
-        alerts = []
-
-        for log in logs:
-            if not log or "event_type" not in log:
-                continue
-
-            if log["event_type"] == "oom_kill":
-                self.oom_events.append(log)
-                if len(self.oom_events) > 2:
-                    alerts.append({
-                        "type": "memory_leak",
-                        "count": len(self.oom_events),
-                        "last_process": log.get("oom_process"),
-                        "timestamp": log["timestamp"]
-                    })
-
-            elif log["event_type"] == "hardware_error":
-                if any(x in log["message"] for x in ["sd", "hd", "nvme"]):
-                    device = self._extract_device_from_message(log["message"])
-                    if device:
-                        self.disk_errors[device] += 1
-                        if self.disk_errors[device] > 3:
-                            alerts.append({
-                                "type": "disk_failure",
-                                "device": device,
-                                "count": self.disk_errors[device],
-                                "timestamp": log["timestamp"]
-                            })
-
-            elif log["event_type"] == "syn_flood":
-                alerts.append({
-                    "type": "syn_flood",
-                    "source": self._extract_source_ip(log["message"]),
-                    "timestamp": log["timestamp"],
-                    "raw": log["raw"]
-                })
-
-            elif log["event_type"] == "usb_disconnect":
-                if "storage" in log["message"].lower():
-                    alerts.append({
-                        "type": "usb_storage_removed",
-                        "timestamp": log["timestamp"]
-                    })
-
-        if logs:
-            filtered_logs = [log for log in logs if log and "event_type" in log]
-            df = pd.DataFrame([self.extract_features(log) for log in filtered_logs])
-            if not df.empty:
-                X = self.scaler.transform(df)
-                scores = self.model.decision_function(X)
-                for i, log in enumerate(filtered_logs):
-                    log["anomaly_score"] = float(scores[i])
-                    log["is_anomaly"] = scores[i] < -0.25
-                    # print(log["anomaly_score"])
-
-        return logs, alerts
-
     def _extract_device_from_message(self, message: str) -> str:
         for word in message.split():
             if any(prefix in word for prefix in ["sd", "hd", "nvme"]):
@@ -144,3 +89,87 @@ class KernLogProcessor:
     def _extract_source_ip(self, message: str) -> str:
         match = re.search(r'from\s(\d+\.\d+\.\d+\.\d+)', message)
         return match.group(1) if match else "unknown"
+        
+async def detect_attacks(self, logs, device_name):
+    alerts = []
+
+    for log in logs:
+        if not log or "event_type" not in log:
+            continue
+
+        if log["event_type"] == "oom_kill":
+            self.oom_events.append(log)
+            if len(self.oom_events) > 2:
+                alerts.append({
+                    "type": "memory_leak",
+                    "count": len(self.oom_events),
+                    "last_process": log.get("oom_process"),
+                    "timestamp": log["timestamp"]
+                })
+
+        elif log["event_type"] == "hardware_error":
+            if any(x in log["message"] for x in ["sd", "hd", "nvme"]):
+                device = self._extract_device_from_message(log["message"])
+                if device:
+                    self.disk_errors[device] += 1
+                    if self.disk_errors[device] > 3:
+                        alerts.append({
+                            "type": "disk_failure",
+                            "device": device['name'],
+                            "count": self.disk_errors[device],
+                            "timestamp": log["timestamp"]
+                        })
+
+        elif log["event_type"] == "syn_flood":
+            alerts.append({
+                "type": "syn_flood",
+                "source": self._extract_source_ip(log["message"]),
+                "timestamp": log["timestamp"],
+                "raw": log["raw"]
+            })
+
+        elif log["event_type"] == "usb_disconnect":
+            if "storage" in log["message"].lower():
+                alerts.append({
+                    "type": "usb_storage_removed",
+                    "timestamp": log["timestamp"]
+                })
+
+    if logs:
+        filtered_logs = [log for log in logs if log and "event_type" in log]
+        df = pd.DataFrame([self.extract_features(log) for log in filtered_logs])
+        if not df.empty:
+            X = self.scaler.transform(df)
+            scores = self.model.decision_function(X)
+            for i, log in enumerate(filtered_logs):
+                log["anomaly_score"] = float(scores[i])
+                log["is_anomaly"] = scores[i] < -0.25
+                if log['is_anomaly']:await anomalie_service.create_anomalie(
+                            CreateAnomalieDto(
+                                timestamp=datetime.fromisoformat(log["timestamp"]),
+                                host=log["host"],
+                                process=log["process"],
+                                pid=log.get("pid"),
+                                message=log["message"],
+                                raw=log["raw"],
+                                severity=log.get("severity"),
+                                anomaly_score=log["anomaly_score"],
+                                is_anomaly=log["is_anomaly"],
+                                device_name=device_name
+                            ).dict())
+    if len(alerts) > 0:
+        for alert in alerts:
+            await anomalie_service.create_reported_anomalie(
+                        CreateReportedAnomalieDto(
+                            type=alert['type'],
+                            count=alert['count'] or None,
+                            last_process=alert.get('last_process'),
+                            timestamp=alert.get('timestamp'),
+                            device_name=alert.get('device') or None,
+                            source=alert.get('source') or None,
+                            log=alert.get('raw') or None,
+                        ).dict()
+                    )
+    return logs, alerts
+
+

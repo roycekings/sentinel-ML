@@ -8,6 +8,9 @@ import json
 import os
 import numpy as np
 from app.services.log_service import Anomalie_service
+from app.schema.anomalie_schema import CreateAnomalieDto, CreateReportedAnomalieDto
+
+anomalie_service = Anomalie_service()
 
 class AuthLogProcessor:
     def __init__(self, model_path="app/models/authLog_model.joblib", scaler_path="app/models/authLog_scaler.joblib"):
@@ -144,8 +147,29 @@ class AuthLogProcessor:
                 for i, log in enumerate(logs):
                     log["anomaly_score"] = float(scores[i])
                     log["is_anomaly"] = scores[i] < -0.2
-                    await Anomalie_service.create_anomalie(log)
-        
+                    if log['is_anomaly']:await anomalie_service.create_anomalie(
+                            CreateAnomalieDto(
+                                timestamp=datetime.fromisoformat(log["timestamp"]),
+                                host=log["host"],
+                                process=log["process"],
+                                pid=log.get("pid"),
+                                message=log["message"],
+                                raw=log["raw"],
+                                severity=log.get("severity"),
+                                anomaly_score=log["anomaly_score"],
+                                is_anomaly=log["is_anomaly"],
+                                device_name=device_name
+                            ).dict())
+        if len(alerts) > 0:
+            for alert in alerts:
+                await anomalie_service.create_reported_anomalie(
+                            CreateReportedAnomalieDto(
+                                type=alert['type'],
+                                ip=alert.get('ip') or None,
+                                user_tried=alert.get('target_user') or None,
+                                timestamp=alert.get('timestamp') or None,
+                            ).dict()
+                    )
         return logs, alerts
 
 
