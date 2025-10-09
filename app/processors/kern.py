@@ -5,11 +5,20 @@ import pandas as pd
 import joblib
 from app.services.log_service import Anomalie_service
 from app.schema.anomalie_schema import CreateAnomalieDto, CreateReportedAnomalieDto
+from app.services.mailer_services import Mailer_Service,get_setting
+from app.templates.alertHtml import get_alert_email_template
+    
 
 
 anomalie_service = Anomalie_service()
-
+settings = get_setting()
+mailer_service = Mailer_Service(settings)
 class KernLogProcessor:
+    async def get_email_list(self):
+        test = await anomalie_service.getAlertReceiver()
+        emails = [receiver['email'] for receiver in test if 'email' in receiver and receiver.get('autoSend') == True]
+        return emails
+    
     def __init__(self, model_path="app/models/kernlog_model.joblib"):
         self.memory_errors = defaultdict(int)
         self.disk_errors = defaultdict(int)
@@ -144,32 +153,50 @@ async def detect_attacks(self, logs, device_name):
             for i, log in enumerate(filtered_logs):
                 log["anomaly_score"] = float(scores[i])
                 log["is_anomaly"] = scores[i] < -0.25
-                if log['is_anomaly']:await anomalie_service.create_anomalie(
-                            CreateAnomalieDto(
-                                timestamp=datetime.fromisoformat(log["timestamp"]),
-                                host=log["host"],
-                                process=log["process"],
-                                pid=log.get("pid"),
-                                message=log["message"],
-                                raw=log["raw"],
-                                severity=log.get("severity"),
-                                anomaly_score=log["anomaly_score"],
-                                is_anomaly=log["is_anomaly"],
-                                device_name=device_name
-                            ).dict())
+                print(f"kern {log}")
+                
+                if log['is_anomaly']:
+                    await anomalie_service.create_anomalie(
+                        CreateAnomalieDto(
+                            timestamp=datetime.fromisoformat(log["timestamp"]),
+                            host=log["host"],
+                            process=log["process"],
+                            pid=log.get("pid"),
+                            message=log["message"],
+                            raw=log["raw"],
+                            severity=log.get("severity"),
+                            anomaly_score=log["anomaly_score"],
+                            is_anomaly=log["is_anomaly"],
+                            device_name=device_name
+                        ).dict()
+                    )
+                    for email in await self.get_email_list():
+                        html_content = get_alert_email_template(log)
+                        await mailer_service.send_email(
+                            to=email,
+                            subject="🚨 Alerte SentinelAI - Anomalie détectée",
+                            html_template=html_content
+                        )
     if len(alerts) > 0:
         for alert in alerts:
             await anomalie_service.create_reported_anomalie(
-                        CreateReportedAnomalieDto(
-                            type=alert['type'],
-                            count=alert['count'] or None,
-                            last_process=alert.get('last_process'),
-                            timestamp=alert.get('timestamp'),
-                            device_name=alert.get('device') or None,
-                            source=alert.get('source') or None,
-                            log=alert.get('raw') or None,
-                        ).dict()
-                    )
+                CreateReportedAnomalieDto(
+                    type=alert['type'],
+                    count=alert.get('count'),
+                    last_process=alert.get('last_process'),
+                    timestamp=alert.get('timestamp'),
+                    device_name=alert.get('device'),
+                    source=alert.get('source'),
+                    log=alert.get('raw'),
+                ).dict()
+            )
+            for email in await self.get_email_list():
+                html_content = get_alert_email_template(alert)
+                await mailer_service.send_email(
+                    to=email,
+                    subject="🚨 Alerte SentinelAI - Anomalie détectée",
+                    html_template=html_content
+                )
     return logs, alerts
 
 

@@ -1,29 +1,34 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from fastapi import Depends, HTTPException
 from pydantic_settings import BaseSettings
 from pydantic import EmailStr
-
 import traceback
 
+# -----------------------------
+# CONFIGURATION
+# -----------------------------
 class Setting(BaseSettings):
-    MAIL_USER: str
-    MAIL_PASS: str
+    MAIL_USER: str ="zeparas34@gmail.com"
+    MAIL_PASS: str= "mmka mjbx xrmu nvre"
     MAIL_HOST: str = "smtp.gmail.com"
     MAIL_PORT: int = 587
-    
-    class config:
-        env_file = ".env"
+
+    class Config:
+        env_file = ".env"  # ⚠️ Assure-toi que .env est présent et contient MAIL_USER et MAIL_PASS
 
 def get_setting():
-    return Setting()
+    return Setting()  # renvoie une instance réelle de Setting
 
+# -----------------------------
+# SERVICE MAIL
+# -----------------------------
 class Mailer_Service:
-    def __init__(self, settings: Setting = Depends(get_setting)):
+    def __init__(self, settings: Setting):
         self.settings = settings
 
     def send_email(self, to: EmailStr, subject: str, html_template: str):
+        """Envoie un email HTML via SMTP"""
         msg = MIMEMultipart()
         msg["From"] = self.settings.MAIL_USER
         msg["To"] = to
@@ -36,6 +41,7 @@ class Mailer_Service:
                 server.starttls()
                 server.login(self.settings.MAIL_USER, self.settings.MAIL_PASS)
                 server.send_message(msg)
+                print(f"✅ Mail envoyé à {to}")
         except Exception as e:
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail=str(e))
+            raise Exception(f"Erreur envoi mail: {e}")

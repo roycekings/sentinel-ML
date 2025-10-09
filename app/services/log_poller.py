@@ -84,7 +84,7 @@ def consumes_logs(loop):
                         if type_log == 'syslog':
                             raw_log = inner_data.get('rawLog', '')
                             device_name = inner_data.get('deviceName', '')
-                            # print(raw_log)
+                            print(raw_log)
                             parsed = syspr.parse_log(raw_log)
                             # print(parsed, 5)
                             asyncio.run_coroutine_threadsafe(
@@ -92,8 +92,9 @@ def consumes_logs(loop):
                             , loop
                             )
                         elif type_log == 'kern' :
-                            # print(1)
                             raw_log = inner_data.get('rawLog', '')
+                            # print(1)
+                            print(raw_log)
                             device_name = inner_data.get('deviceName', '')
 
                             parsed = syspr.parse_log(raw_log)
@@ -104,8 +105,9 @@ def consumes_logs(loop):
                             #     loop
                             # )
                         elif type_log == "auth":
-                            # print(2)
                             raw_log = inner_data.get('rawLog', '')
+                            # print(2)
+                            print(raw_log)
                             device_name = inner_data.get('deviceName', '')
                             parsed = syspr.parse_log(raw_log)
                             # print(parsed, 5)
